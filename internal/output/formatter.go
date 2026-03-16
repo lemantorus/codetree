@@ -10,12 +10,14 @@ import (
 
 type Formatter struct {
 	showDocstrings bool
+	showSignatures bool
 	indent         string
 }
 
-func NewFormatter(showDocstrings bool) *Formatter {
+func NewFormatter(showDocstrings bool, showSignatures bool) *Formatter {
 	return &Formatter{
 		showDocstrings: showDocstrings,
+		showSignatures: showSignatures,
 		indent:         "    ",
 	}
 }
@@ -66,7 +68,11 @@ func (f *Formatter) formatEntities(entities []model.CodeEntity, w io.Writer, pre
 			connector = "└── "
 		}
 
-		fmt.Fprintf(w, "%s%s%s %s\n", prefix, connector, entity.Type, entity.Name)
+		if f.showSignatures && entity.Signature != "" {
+			fmt.Fprintf(w, "%s%s%s\n", prefix, connector, entity.Signature)
+		} else {
+			fmt.Fprintf(w, "%s%s%s %s\n", prefix, connector, entity.Type, entity.Name)
+		}
 
 		entityPrefix := prefix
 		if isLast {
@@ -77,12 +83,8 @@ func (f *Formatter) formatEntities(entities []model.CodeEntity, w io.Writer, pre
 
 		if f.showDocstrings && entity.Docstring != "" {
 			docLines := strings.Split(entity.Docstring, "\n")
-			for j, line := range docLines {
-				if j == 0 {
-					fmt.Fprintf(w, "%s│   %s\n", entityPrefix, line)
-				} else {
-					fmt.Fprintf(w, "%s│   %s\n", entityPrefix, line)
-				}
+			for _, line := range docLines {
+				fmt.Fprintf(w, "%s│   %s\n", entityPrefix, line)
 			}
 		}
 
@@ -93,9 +95,9 @@ func (f *Formatter) formatEntities(entities []model.CodeEntity, w io.Writer, pre
 	}
 }
 
-func FormatTree(root *model.DirNode, showDocstrings bool) string {
+func FormatTree(root *model.DirNode, showDocstrings bool, showSignatures bool) string {
 	var sb strings.Builder
-	f := NewFormatter(showDocstrings)
+	f := NewFormatter(showDocstrings, showSignatures)
 	f.Format(root, &sb)
 	return sb.String()
 }

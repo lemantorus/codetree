@@ -20,6 +20,7 @@ var (
 	languages         []string
 	entityTypes       []string
 	noDocstring       bool
+	noSignatures      bool
 	outputFile        string
 	extensions        []string
 	includeLibs       bool
@@ -39,6 +40,7 @@ func main() {
 	rootCmd.Flags().StringSliceVarP(&languages, "lang", "l", []string{}, "languages to parse (comma-separated)")
 	rootCmd.Flags().StringSliceVarP(&entityTypes, "type", "t", []string{}, "entity types: func,class,method,interface,enum,type,const,var")
 	rootCmd.Flags().BoolVar(&noDocstring, "no-docstrings", false, "hide docstrings")
+	rootCmd.Flags().BoolVar(&noSignatures, "no-signatures", false, "hide function/class signatures (show only type + name)")
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file (default: stdout)")
 	rootCmd.Flags().StringSliceVar(&extensions, "ext", []string{}, "file extensions (default: auto by language)")
 	rootCmd.Flags().BoolVar(&includeLibs, "include-libs", false, "include dependency directories (venv, node_modules, etc.)")
@@ -87,7 +89,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to build tree: %w", err)
 	}
 
-	formatter := output.NewFormatter(!noDocstring)
+	formatter := output.NewFormatter(!noDocstring, !noSignatures)
 
 	var out *os.File
 	if outputFile != "" {

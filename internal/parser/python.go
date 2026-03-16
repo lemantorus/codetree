@@ -15,7 +15,7 @@ type PythonParser struct {
 
 func NewPythonParser() *PythonParser {
 	return &PythonParser{
-		funcRegex:  regexp.MustCompile(`(?m)^(\s*)def\s+(\w+)\s*\(([^)]*)\)(?:\s*->\s*([^\:]+))?\s*:`),
+		funcRegex:  regexp.MustCompile(`(?m)^(\s*)(async\s+)?def\s+(\w+)\s*\(([^)]*)\)(?:\s*->\s*([^\:]+))?\s*:`),
 		classRegex: regexp.MustCompile(`(?m)^(\s*)class\s+(\w+)(?:\s*\(([^)]*)\))?\s*:`),
 	}
 }
@@ -86,11 +86,16 @@ func (p *PythonParser) parseLines(lines []string) []model.CodeEntity {
 				if methodMatch := p.funcRegex.FindStringSubmatch(nextLine); methodMatch != nil {
 					methodIndent := len(methodMatch[1])
 					if methodIndent == indent+4 {
-						methodName := methodMatch[2]
-						params := methodMatch[3]
-						returnType := strings.TrimSpace(methodMatch[4])
+						asyncMod := strings.TrimSpace(methodMatch[2])
+						methodName := methodMatch[3]
+						params := methodMatch[4]
+						returnType := strings.TrimSpace(methodMatch[5])
 
-						methodSig := "def " + methodName + "(" + params + ")"
+						methodSig := ""
+						if asyncMod != "" {
+							methodSig = asyncMod + " "
+						}
+						methodSig += "def " + methodName + "(" + params + ")"
 						if returnType != "" {
 							methodSig += " -> " + returnType
 						}
@@ -121,16 +126,21 @@ func (p *PythonParser) parseLines(lines []string) []model.CodeEntity {
 			})
 		} else if match := p.funcRegex.FindStringSubmatch(line); match != nil {
 			indent := len(match[1])
-			name := match[2]
-			params := match[3]
-			returnType := strings.TrimSpace(match[4])
+			asyncMod := strings.TrimSpace(match[2])
+			name := match[3]
+			params := match[4]
+			returnType := strings.TrimSpace(match[5])
 
 			if indent > 0 {
 				i++
 				continue
 			}
 
-			sig := "def " + name + "(" + params + ")"
+			sig := ""
+			if asyncMod != "" {
+				sig = asyncMod + " "
+			}
+			sig += "def " + name + "(" + params + ")"
 			if returnType != "" {
 				sig += " -> " + returnType
 			}
