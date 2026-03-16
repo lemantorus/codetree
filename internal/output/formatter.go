@@ -9,16 +9,20 @@ import (
 )
 
 type Formatter struct {
-	showDocstrings bool
-	showSignatures bool
-	indent         string
+	showDocstrings  bool
+	showSignatures  bool
+	maxSignatureLen int
+	maxDocstringLen int
+	indent          string
 }
 
-func NewFormatter(showDocstrings bool, showSignatures bool) *Formatter {
+func NewFormatter(showDocstrings bool, showSignatures bool, maxSignatureLen int, maxDocstringLen int) *Formatter {
 	return &Formatter{
-		showDocstrings: showDocstrings,
-		showSignatures: showSignatures,
-		indent:         "    ",
+		showDocstrings:  showDocstrings,
+		showSignatures:  showSignatures,
+		maxSignatureLen: maxSignatureLen,
+		maxDocstringLen: maxDocstringLen,
+		indent:          "    ",
 	}
 }
 
@@ -68,8 +72,10 @@ func (f *Formatter) formatEntities(entities []model.CodeEntity, w io.Writer, pre
 			connector = "└── "
 		}
 
-		if f.showSignatures && entity.Signature != "" {
-			fmt.Fprintf(w, "%s%s%s\n", prefix, connector, entity.Signature)
+		signature := entity.Signature
+		if f.showSignatures && signature != "" {
+			signature = f.truncate(signature, f.maxSignatureLen)
+			fmt.Fprintf(w, "%s%s%s\n", prefix, connector, signature)
 		} else {
 			fmt.Fprintf(w, "%s%s%s %s\n", prefix, connector, entity.Type, entity.Name)
 		}
@@ -82,7 +88,8 @@ func (f *Formatter) formatEntities(entities []model.CodeEntity, w io.Writer, pre
 		}
 
 		if f.showDocstrings && entity.Docstring != "" {
-			docLines := strings.Split(entity.Docstring, "\n")
+			docstring := f.truncate(entity.Docstring, f.maxDocstringLen)
+			docLines := strings.Split(docstring, "\n")
 			for _, line := range docLines {
 				fmt.Fprintf(w, "%s│   %s\n", entityPrefix, line)
 			}
@@ -95,9 +102,16 @@ func (f *Formatter) formatEntities(entities []model.CodeEntity, w io.Writer, pre
 	}
 }
 
-func FormatTree(root *model.DirNode, showDocstrings bool, showSignatures bool) string {
+func (f *Formatter) truncate(s string, maxLen int) string {
+	if maxLen <= 0 || len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
+}
+
+func FormatTree(root *model.DirNode, showDocstrings bool, showSignatures bool, maxSignatureLen int, maxDocstringLen int) string {
 	var sb strings.Builder
-	f := NewFormatter(showDocstrings, showSignatures)
+	f := NewFormatter(showDocstrings, showSignatures, maxSignatureLen, maxDocstringLen)
 	f.Format(root, &sb)
 	return sb.String()
 }

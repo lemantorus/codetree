@@ -26,6 +26,8 @@ var (
 	includeLibs       bool
 	excludePattern    string
 	excludeIgnoreCase bool
+	maxSignatureLen   int
+	maxDocstringLen   int
 )
 
 func main() {
@@ -46,6 +48,8 @@ func main() {
 	rootCmd.Flags().BoolVar(&includeLibs, "include-libs", false, "include dependency directories (venv, node_modules, etc.)")
 	rootCmd.Flags().StringVar(&excludePattern, "exclude-dirs", "", "regex pattern for directories to skip (use | as separator for multiple patterns)")
 	rootCmd.Flags().BoolVar(&excludeIgnoreCase, "exclude-dirs-ignore-case", false, "case-insensitive matching for --exclude-dirs")
+	rootCmd.Flags().IntVar(&maxSignatureLen, "max-signature", 0, "max signature length (0 = unlimited)")
+	rootCmd.Flags().IntVar(&maxDocstringLen, "max-docstring", 0, "max docstring length (0 = unlimited)")
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -89,7 +93,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to build tree: %w", err)
 	}
 
-	formatter := output.NewFormatter(!noDocstring, !noSignatures)
+	formatter := output.NewFormatter(!noDocstring, !noSignatures, maxSignatureLen, maxDocstringLen)
 
 	var out *os.File
 	if outputFile != "" {

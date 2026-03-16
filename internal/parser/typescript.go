@@ -98,6 +98,12 @@ func (p *TypeScriptParser) parseLines(lines []string) []model.CodeEntity {
 			}
 
 			docstring := p.extractTSDoc(lines, i-1)
+			properties := p.extractInterfaceProperties(lines, i+1)
+			if properties != "" {
+				sig += " { " + properties + " }"
+			}
+
+			endLine := p.findBlockEnd(lines, i)
 
 			entities = append(entities, model.CodeEntity{
 				Name:      name,
@@ -105,11 +111,15 @@ func (p *TypeScriptParser) parseLines(lines []string) []model.CodeEntity {
 				Signature: sig,
 				Docstring: docstring,
 				LineStart: i + 1,
+				LineEnd:   endLine,
 			})
 		} else if match := p.typeRegex.FindStringSubmatch(trimmed); match != nil {
 			name := match[1]
-			sig := "type " + name
 			docstring := p.extractTSDoc(lines, i-1)
+			typeBody := p.extractTypeBody(lines, i)
+			sig := "type " + name + " = " + typeBody
+
+			endLine := p.findBlockEnd(lines, i)
 
 			entities = append(entities, model.CodeEntity{
 				Name:      name,
@@ -117,6 +127,7 @@ func (p *TypeScriptParser) parseLines(lines []string) []model.CodeEntity {
 				Signature: sig,
 				Docstring: docstring,
 				LineStart: i + 1,
+				LineEnd:   endLine,
 			})
 		} else if match := p.enumRegex.FindStringSubmatch(trimmed); match != nil {
 			name := match[1]
@@ -309,6 +320,156 @@ func (p *TypeScriptParser) extractTSDoc(lines []string, lineIdx int) string {
 	}
 
 	return strings.Join(docLines, "\n")
+}
+
+func (p *TypeScriptParser) extractTypeBody(lines []string, startIdx int) string {
+	if startIdx >= len(lines) {
+		return ""
+	}
+
+	line := lines[startIdx]
+	trimmed := strings.TrimSpace(line)
+
+	eqIdx := strings.Index(trimmed, "=")
+	if eqIdx == -1 {
+		return ""
+	}
+
+	afterEq := strings.TrimSpace(trimmed[eqIdx+1:])
+	if afterEq == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(afterEq, "{") {
+		return p.extractBlockContent(lines, startIdx, afterEq)
+	}
+
+	if strings.HasSuffix(afterEq, ";") {
+		return strings.TrimSuffix(afterEq, ";")
+	}
+	return afterEq
+}
+
+func (p *TypeScriptParser) extractInterfaceProperties(lines []string, startIdx int) string {
+	if startIdx >= len(lines) {
+		return ""
+	}
+
+	var props []string
+	braceDepth := 0
+	started := false
+
+	if startIdx > 0 {
+		prevLine := lines[startIdx-1]
+		trimmed := strings.TrimSpace(prevLine)
+		if strings.Contains(trimmed, "{") {
+			started = true
+			braceDepth = strings.Count(trimmed, "{") - strings.Count(trimmed, "}")
+			if braceDepth == 0 {
+				return ""
+			}
+		}
+	}
+
+	for i := startIdx; i < len(lines); i++ {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+
+		if trimmed == "" {
+			continue
+		}
+
+		if !started {
+			if strings.Contains(trimmed, "{") {
+				started = true
+				braceDepth += strings.Count(trimmed, "{") - strings.Count(trimmed, "}")
+				if braceDepth == 0 {
+					break
+				}
+			}
+			continue
+		}
+
+		braceDepth += strings.Count(trimmed, "{") - strings.Count(trimmed, "}")
+		if braceDepth == 0 {
+			break
+		}
+
+		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "/*") || strings.HasPrefix(trimmed, "*") {
+			continue
+		}
+
+		propMatch := regexp.MustCompile(`^(\w+)(\?)?\s*:\s*([^;]+);?$`).FindStringSubmatch(trimmed)
+		if propMatch != nil {
+			propName := propMatch[1]
+			propType := strings.TrimSuffix(propMatch[3], ";")
+			propType = strings.TrimSpace(propType)
+			if propMatch[2] == "?" {
+				props = append(props, propName+"?: "+propType)
+			} else {
+				props = append(props, propName+": "+propType)
+			}
+		}
+	}
+
+	return strings.Join(props, ", ")
+}
+
+func (p *TypeScriptParser) extractBlockContent(lines []string, startIdx int, firstLine string) string {
+	var content strings.Builder
+	content.WriteString(firstLine)
+
+	braceDepth := strings.Count(firstLine, "{") - strings.Count(firstLine, "}")
+
+	if braceDepth == 0 {
+		return strings.TrimSuffix(firstLine, ";")
+	}
+
+	for i := startIdx + 1; i < len(lines); i++ {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+
+		if trimmed == "" {
+			continue
+		}
+
+		content.WriteString(" ")
+		content.WriteString(trimmed)
+
+		braceDepth += strings.Count(trimmed, "{") - strings.Count(trimmed, "}")
+
+		if braceDepth == 0 {
+			break
+		}
+	}
+
+	result := content.String()
+	result = strings.ReplaceAll(result, "{ ", "{")
+	result = strings.ReplaceAll(result, " }", "}")
+	result = strings.ReplaceAll(result, "; ", "; ")
+	return result
+}
+
+func (p *TypeScriptParser) findBlockEnd(lines []string, startIdx int) int {
+	if startIdx >= len(lines) {
+		return startIdx + 1
+	}
+
+	startIndent := p.getIndent(lines[startIdx])
+
+	for i := startIdx + 1; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+		if trimmed == "" {
+			continue
+		}
+
+		currentIndent := p.getIndent(lines[i])
+		if currentIndent <= startIndent && trimmed != "" && !strings.HasPrefix(trimmed, "//") && !strings.HasPrefix(trimmed, "*") {
+			return i
+		}
+	}
+
+	return len(lines)
 }
 
 func init() {
