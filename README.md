@@ -26,7 +26,7 @@ go install github.com/lemantorus/codetree@latest
 ```bash
 git clone https://github.com/lemantorus/codetree.git
 cd codetree
-go build -o codetree ./cmd/codetree
+go build -o codetree .
 ```
 
 ## Usage
@@ -131,7 +131,7 @@ codetree/
 
 ```
 codetree/
-├── cmd/codetree/main.go       # CLI entry point
+├── main.go                    # CLI entry point
 ├── internal/
 │   ├── model/entity.go        # Data models
 │   ├── parser/
