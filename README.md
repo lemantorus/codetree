@@ -18,13 +18,13 @@ A CLI tool that builds repository tree visualizations with code signatures (func
 ### From source
 
 ```bash
-go install github.com/yourusername/codetree@latest
+go install github.com/lemantorus/codetree@latest
 ```
 
 ### Build locally
 
 ```bash
-git clone https://github.com/yourusername/codetree.git
+git clone https://github.com/lemantorus/codetree.git
 cd codetree
 go build -o codetree ./cmd/codetree
 ```
