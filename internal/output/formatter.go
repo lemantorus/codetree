@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"codetree/internal/model"
+	"github.com/lemantorus/codetree/internal/model"
 )
 
 type Formatter struct {

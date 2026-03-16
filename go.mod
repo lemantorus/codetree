@@ -1,4 +1,4 @@
-module codetree
+module github.com/lemantorus/codetree
 
 go 1.22
 

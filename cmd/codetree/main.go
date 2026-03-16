@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"codetree/internal/model"
-	"codetree/internal/output"
-	"codetree/internal/parser"
-	"codetree/internal/tree"
+	"github.com/lemantorus/codetree/internal/model"
+	"github.com/lemantorus/codetree/internal/output"
+	"github.com/lemantorus/codetree/internal/parser"
+	"github.com/lemantorus/codetree/internal/tree"
 
-	_ "codetree/internal/parser"
+	_ "github.com/lemantorus/codetree/internal/parser"
 
 	"github.com/spf13/cobra"
 )

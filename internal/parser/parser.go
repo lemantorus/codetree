@@ -1,6 +1,6 @@
 package parser
 
-import "codetree/internal/model"
+import "github.com/lemantorus/codetree/internal/model"
 
 type Parser interface {
 	Language() string

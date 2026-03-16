@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"codetree/internal/model"
-	"codetree/internal/parser"
+	"github.com/lemantorus/codetree/internal/model"
+	"github.com/lemantorus/codetree/internal/parser"
 )
 
 type EntityType = model.EntityType

@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"codetree/internal/model"
+	"github.com/lemantorus/codetree/internal/model"
 )
 
 type PythonParser struct {
